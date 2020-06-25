@@ -75,16 +75,18 @@ for column in df.columns:
         #xlabels = [df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"]
         
         xlabels =[]
+        vecka = 21
         for i in range(iMax):
             if df["Day"][i] == "måndag":
-                xlabels.append(df["Date"][i])
-            else: 
-                xlabels.append(None)
+                xlabels.append(df["Date"][i] + "\n Mån v: " + str(vecka))
+                vecka += 1
+            #else: 
+             #   xlabels.append(None)
 
 
         line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"])
         line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] != "måndag"], minor=True)
-
+        line.set_xticklabels(xlabels, rotation=90)
         #line.set_xticks(xlabels)
         
         line.set_yticks([1,2,3,4,5])
@@ -137,6 +139,6 @@ port = 465
 context = ssl.create_default_context()
 with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
     server.login(bot_mail, password)
-    #server.sendmail(bot_mail, receiver_email, message.as_string())
+    server.sendmail(bot_mail, receiver_email, message.as_string())
 
 print("Sent.")
