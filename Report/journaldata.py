@@ -19,9 +19,14 @@ from  matplotlib.colors import LinearSegmentedColormap
 import matplotlib.ticker as ticker
 import time
 from scipy.ndimage.filters import gaussian_filter1d
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
+
+
+
 
 creds_path = 'C:/Users/alexa/Desktop/Important/principles-347f1fb0ab19.json'
-attatchment_path = "C:/Users/alexa/Desktop/Report/attatchments/"
+attatchment_path = "C:/Users/alexa/Desktop/Learning/Report/attatchments/"
 bot_mail = "alwobot7@gmail.com"
 
 #Load in Data from Google Sheets
@@ -43,6 +48,7 @@ for column in df.columns:
     if column not in ['Day', 'Date', 'Journal']:
         df[column] = pd.to_numeric(df[column], errors='coerce')
 
+#formatter = plt.mdates.DateFormatter("%Y-%m-%d")
 
 cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
 #cmap = LinearSegmentedColormap.from_list('krg',["#31B247", "#f4f4f4", "#FF0000"], N=256)
@@ -51,39 +57,50 @@ cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","
 aspect = iMax/14
 for column in df.columns:
     if column not in ['Day', 'Date', 'Journal']:
-        plt.figure(figsize=(6,3.4))
-        if column == "Average":
-            ysmoothed = gaussian_filter1d(df[column][:iMax], sigma=1.7)
-            linestyle = "-"
-            linecolor = "black"
-        else:
-            ysmoothed = gaussian_filter1d(df[column][:iMax], sigma=1.7)
-            linestyle = "-"
-            linecolor = "black"
-        plt.rcParams["figure.figsize"] = (6,3.4)
-        plt.plot(df["Date"][:iMax], ysmoothed, linewidth="3", color=linecolor, linestyle=linestyle)
-        #plot1 = plt.plot_date(df["Date"][:iMax], df[column][:iMax], "k-")
-        plt.plot(df["Date"][:iMax], df[column][:iMax], "kx", color="#494949" ,label=column)
-        plt.xlim()
-        plt.ylim()
-        plt.plot()
+        fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
+        line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=aspect)
 
-        plt.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=aspect)
-        xlabels = [i for i in df["Date"]]
-        #yaver = [np.average(df[column][:iMax]) for i in range(len(df[column][:iMax]))]
-        plt.gca().set_facecolor("#f4f4f4")
-        plt.xticks(df["Date"][:iMax], xlabels, rotation='vertical')
-        plt.yticks([1,2,3,4,5])
+        #x_values = [datetime.datetime.strptime(d,"%Y-%m-%d").date() for d in df["Date"][:iMax]]
+        x_values = df["Date"][:iMax]
+        y_values = gaussian_filter1d(df[column][:iMax], sigma=1.7)
 
-        plt.tick_params(axis='y', which='major', labelsize=10)
-        plt.minorticks_on()
-        plt.grid(axis = "y", linestyle="-", color="darkgray")
-        plt.legend()
-        plt.title(column) 
-        plt.tight_layout()
-        #plt.set_size_inches(20, 11,dpi=100)
+        linestyle = "-"
+        linecolor = "black"
+
+        line.plot_date(x_values, y_values, linewidth="3", color=linecolor, linestyle=linestyle, marker=None)
+        
+        line.plot_date(x_values, df[column][:iMax], "kx", color="#494949" ,label=column)
+        line.set_ylim(0.7, 5.3)
+
+        #xlabels = [df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"]
+        
+        xlabels =[]
+        for i in range(iMax):
+            if df["Day"][i] == "måndag":
+                xlabels.append(df["Date"][i])
+            else: 
+                xlabels.append(None)
+
+
+        line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"])
+        line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] != "måndag"], minor=True)
+
+        #line.set_xticks(xlabels)
+        
+        line.set_yticks([1,2,3,4,5])
+        
+        line.tick_params(axis='y', which='major', labelsize=10)
+        #line.minorticks_on()
+        line.grid(axis = "y", linestyle="-", color="darkgray")
+        #line.grid(axis = "x", linestyle="-", color="darkgray")
+        
+        line.legend()
+        line.set_title(column) 
+        fig.tight_layout()
+        
         plt.savefig(attatchment_path+str(column)+"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
-        plt.show()
+
+        #plt.show()
         plt.clf()
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
