@@ -19,11 +19,6 @@ from  matplotlib.colors import LinearSegmentedColormap
 import matplotlib.ticker as ticker
 import time
 from scipy.ndimage.filters import gaussian_filter1d
-from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
-                               AutoMinorLocator)
-
-
-
 
 creds_path = 'C:/Users/alexa/Desktop/Important/principles-347f1fb0ab19.json'
 attatchment_path = "C:/Users/alexa/Desktop/Learning/Report/attatchments/"
@@ -48,10 +43,8 @@ for column in df.columns:
     if column not in ['Day', 'Date', 'Journal']:
         df[column] = pd.to_numeric(df[column], errors='coerce')
 
-#formatter = plt.mdates.DateFormatter("%Y-%m-%d")
-
+#Background cmap definined manually 
 cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
-#cmap = LinearSegmentedColormap.from_list('krg',["#31B247", "#f4f4f4", "#FF0000"], N=256)
 
 #Plot and save the graphs
 aspect = iMax/14
@@ -62,12 +55,14 @@ for column in df.columns:
 
         #x_values = [datetime.datetime.strptime(d,"%Y-%m-%d").date() for d in df["Date"][:iMax]]
         x_values = df["Date"][:iMax]
-        y_values = gaussian_filter1d(df[column][:iMax], sigma=1.7)
+        y_values1 = gaussian_filter1d(df[column][:iMax], sigma=1.7)
+        y_values2 = gaussian_filter1d(df[column][:iMax], sigma=1)
 
         linestyle = "-"
         linecolor = "black"
 
-        line.plot_date(x_values, y_values, linewidth="3", color=linecolor, linestyle=linestyle, marker=None)
+        line.plot_date(x_values, y_values1, linewidth="3", color=linecolor, linestyle=linestyle, marker=None)
+        line.plot_date(x_values, y_values2, linewidth="1", color="gray", linestyle=linestyle, marker=None)
         
         line.plot_date(x_values, df[column][:iMax], "kx", color="#494949" ,label=column)
         line.set_ylim(0.7, 5.3)
