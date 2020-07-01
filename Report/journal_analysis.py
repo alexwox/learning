@@ -39,10 +39,10 @@ for column in df.columns:
 #Analysis
 #std = df[0:iMax].std().sort_values()
 #mean = df[0:iMax].mean().sort_values()
-#c = df[0:iMax].corr().abs()
-#s = c.unstack()
-#so = s.sort_values(kind="quicksort")
-#so = so.drop_duplicates()
+c = df[0:iMax].corr().abs()
+s = c.unstack()
+so = s.sort_values(kind="quicksort")
+so = so.drop_duplicates()[:-1]
 
 def int_columns(df):
     for column in df.columns:
@@ -119,6 +119,26 @@ def rank_columns_mean_plot(df):
     fig.set_facecolor("white")
     fig.show()
 
+def rank_column_correlation_plot(df):
+    c = df[0:iMax].corr().abs()
+    s = c.unstack()
+    so = s.sort_values(kind="quicksort")
+    so = so.drop_duplicates()[:-1]
+    x = [so.index[i][0] + ", " + so.index[i][1] for i in range(len(so.index))]
+    fig, line = plt.subplots(figsize=(50,10), sharex=True, sharey=True)
+    line.bar(x, so, label = "Correlations", color="lightblue", edgecolor="black")
+    for i, v in enumerate(so):
+        line.text(i-0.3, v+0.03, "- "+  str(round(v,4)), fontweight="bold", color='black', rotation=90)
+    line.grid(axis = "y", linestyle="-", color="darkgray")
+    line.set_aspect("auto")
+    line.legend(loc="upper left", markerscale="4")
+    line.set_ylim(0, 1)
+    line.tick_params(axis='x', labelrotation=90)
+    line.set_facecolor("#F4F4F4")
+    fig.set_facecolor("white")
+    fig.show()
+
+rank_column_correlation_plot(df)
 rank_columns_std_plot(df)
 rank_columns_mean_plot(df)
-compare_plot("Sleep", "Average")
+compare_plot("Creativity", "Harmony")
