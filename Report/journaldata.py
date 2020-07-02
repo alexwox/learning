@@ -36,6 +36,7 @@ j2020 = gc.open('Journal (Start 12/5-20)').get_worksheet(1)
 df = pd.DataFrame(j2020.get_all_records())
 
 #Get the number of datapoints by looking at Journal entries 
+global iMax
 iMax = len([len(item) for item in df["Journal"] if len(item) != 0])
 
 #Turn numeric data in DF into floats (from str)
@@ -44,12 +45,14 @@ for column in df.columns:
         df[column] = pd.to_numeric(df[column], errors='coerce')
 
 #Background cmap definined manually 
-cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
+cmap = LinearSegmentedColormap.from_list('krg',["#008702","#7fe393", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
+#cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
 
 #Plot and save the graphs
 aspect = iMax/14
 for column in df.columns:
     if column not in ['Day', 'Date', 'Journal']:
+        iMin = iMax - len(df[column].dropna())
         fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
         line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=aspect)
 
@@ -57,13 +60,15 @@ for column in df.columns:
         x_values = df["Date"][:iMax]
         y_values1 = gaussian_filter1d(df[column][:iMax], sigma=1.7)
         y_values2 = gaussian_filter1d(df[column][:iMax], sigma=1)
+        y_values3 = df[column][:iMax]
 
         linestyle = "-"
         linecolor = "black"
 
-        line.plot_date(x_values, y_values1, linewidth="3", color=linecolor, linestyle=linestyle, marker=None)
         line.plot_date(x_values, y_values2, linewidth="1", color="gray", linestyle=linestyle, marker=None)
-        
+        line.plot_date(x_values, y_values3, linewidth="0.5", color="lightgray", linestyle=linestyle, marker=None)
+        line.plot_date(x_values, y_values1, linewidth="3", color=linecolor, linestyle=linestyle, marker=None)
+
         line.plot_date(x_values, df[column][:iMax], "kx", color="#494949" ,label=column)
         line.set_ylim(0.7, 5.3)
 
@@ -97,8 +102,89 @@ for column in df.columns:
         
         plt.savefig(attatchment_path+str(column)+"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
 
-        #plt.show()
+        plt.show()
         plt.clf()
+
+
+def int_columns(df):
+    for column in df.columns:
+        if column not in ['Day', 'Date', 'Journal']:
+            df[column] = pd.to_numeric(df[column], errors='coerce')
+    return df
+
+def remove_string_columns(df):
+    df_clean = df.copy()
+    try:
+        del df_clean["Day"]
+        del df_clean["Date"]
+        del df_clean["Journal"]
+        return df_clean
+    except:
+        return df_clean
+
+def get_y(column1, column2):
+    return (gaussian_filter1d(df[column1][:iMax], sigma=1.7), gaussian_filter1d(df[column2][:iMax], sigma=1.7))
+
+def rank_columns_std_plot(df, attatchment_path):
+    fig, line = plt.subplots(figsize=(8.8,6), sharex=True, sharey=True)
+    line.bar(remove_string_columns(df).columns, df[0:iMax].std(), label = "Standard Deviation")
+    line.grid(axis = "y", linestyle="-", color="darkgray")
+    line.legend()
+    line.set_ylim(0, 2)
+    line.tick_params(axis='x', labelrotation=90)
+    line.set_facecolor("#F4F4F4")
+    fig.set_facecolor("white")
+    fig.tight_layout()
+    line.set_title("Standard deviations") 
+    fig.savefig(attatchment_path+"z_std"+"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
+    return fig
+
+def rank_columns_mean_plot(df, attatchment_path):
+    fig, line = plt.subplots(figsize=(8.8,6), sharex=True, sharey=True)
+    line.bar(remove_string_columns(df).columns, df[0:iMax].mean(), label = "Mean", color="green")
+    line.grid(axis = "y", linestyle="-", color="darkgray")
+    line.legend()
+    line.set_ylim(0.7, 5.3)
+    line.tick_params(axis='x', labelrotation=90)
+    line.set_facecolor("#F4F4F4")
+    fig.set_facecolor("white")
+    fig.tight_layout()
+    line.set_title("Means") 
+
+    fig.savefig(attatchment_path+"z_means"+"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
+
+    return fig
+
+def rank_columns_correlation_plot(df, attatchment_path):
+    c = df[0:iMax].corr().abs()
+    s = c.unstack()
+    so = s.sort_values(kind="quicksort")
+    so = so.drop_duplicates()[:-1]
+    x = [so.index[i][0] + ", " + so.index[i][1] for i in range(len(so.index))]
+    fig, line = plt.subplots(figsize=(50,10), sharex=True, sharey=True)
+    line.bar(x, so, label = "Correlations", color="lightblue", edgecolor="black")
+    for i, v in enumerate(so):
+        line.text(i-0.3, v+0.03, "- "+  str(round(v,4)), fontweight="bold", color='black', rotation=90)
+    line.grid(axis = "y", linestyle="-", color="darkgray")
+    line.set_aspect("auto")
+    line.legend(loc="upper left", markerscale="4")
+    line.set_ylim(0, 1)
+    line.tick_params(axis='x', labelrotation=90)
+    line.set_facecolor("#F4F4F4")
+    fig.set_facecolor("white")
+    line.set_title("Correlations") 
+
+    fig.tight_layout()
+
+    fig.savefig(attatchment_path+"z_correlations"+"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
+
+    return fig
+
+rank_columns_correlation_plot(df, attatchment_path)
+
+rank_columns_mean_plot(df, attatchment_path)
+
+rank_columns_std_plot(df, attatchment_path)
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #Email details
