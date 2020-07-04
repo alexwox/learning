@@ -40,9 +40,31 @@ for column in df.columns:
     if column not in ['Day', 'Date', 'Journal']:
         df[column] = pd.to_numeric(df[column], errors='coerce')
 
+
+groups={"Development":["Discipline", "Productivity", "Creativity", "Insight", "Motivation"], \
+        "Health":["Sleep", "Training&Strech", "Diet", "Physique"], \
+        "Happiness":["Harmony", "Social", "ER", "Experience"]}
+
+
 #Define all necessary functions
 def get_iMax(df):
     return len([len(item) for item in df["Journal"] if len(item) != 0]) #Num datapoints by looking at journal column
+
+def int_columns(df):
+    for column in df.columns:
+        if column not in ['Day', 'Date', 'Journal']:
+            df[column] = pd.to_numeric(df[column], errors='coerce')
+    return df
+
+def remove_string_columns(df):
+    df_clean = df.copy()
+    try:
+        del df_clean["Day"]
+        del df_clean["Date"]
+        del df_clean["Journal"]
+        return df_clean
+    except:
+        return df_clean
 
 def df_no_str_cols(df):
     df_clean = df.copy()
@@ -63,7 +85,94 @@ def get_xlabels(df):
             vecka += 1
     return xlabels
 
-def create_data_plot(df, column, attatchment_path, show=True):
+def create_group_data(df, group, groups):
+    return df[groups[group]].mean(axis=1)[:get_iMax(df)]
+
+def create_group_plot(df, attatchment_path, group, groups, show):
+    group_data = create_group_data(df, group, groups)
+    #Background cmap definined manually 
+    cmap = LinearSegmentedColormap.from_list('krg',["#008702","#7fe393", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
+    #Plot and save the graphs
+    iMax = get_iMax(df)
+    aspect = iMax/14
+    iMin = iMax - len(df[column].dropna())
+    fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
+    line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=aspect)
+
+    #x_values = [datetime.datetime.strptime(d,"%Y-%m-%d").date() for d in df["Date"][:iMax]]
+    x_values = df["Date"][:iMax]
+    y_values1 = gaussian_filter1d(group_data, sigma=1.7)
+
+
+    linestyle = "-"
+    linecolor = "black"
+
+    for col in groups[group]:
+        y_values_col = gaussian_filter1d(df[col][:get_iMax(df)], sigma=1.7)
+        line.plot_date(x_values, y_values_col, linewidth="1", linestyle=linestyle, marker=None, label=col)
+
+    line.plot_date(x_values, y_values1, linewidth="3", color=linecolor, linestyle=linestyle, marker=None, label=group)
+
+    #line.plot_date(x_values, group_data, "kx", color="#494949")
+    line.set_ylim(0.7, 5.3)
+    
+    xlabels = get_xlabels(df)
+    line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"])
+    line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] != "måndag"], minor=True)
+    line.set_xticklabels(xlabels, rotation=90)
+    line.set_yticks([1,2,3,4,5])
+    line.tick_params(axis='y', which='major', labelsize=10)
+
+    line.grid(axis = "y", linestyle="-", color="darkgray")    
+    line.legend()
+    line.set_title(group) 
+    fig.tight_layout()
+    plt.savefig(attatchment_path+"y_"+str(group)+"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
+    if show: 
+        plt.show()
+    else: 
+        plt.clf()
+
+def create_all_group_plots(df, attatchment_path, groups, show=False):
+    for group in groups.keys():
+        create_group_plot(df, attatchment_path, group, groups, show)
+
+def compare_plot(column1, column2):
+    """In: two of: Average, Experience, Harmony, Social, Motivation, Physique, Creativity, ER, Diet, Discipline, Sleep, Productivity, Meditation, Training&Strech
+    Out: Graph with both columns """
+    
+    #Init
+    cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
+    fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
+
+    line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=iMax/14)
+
+    x_values = df["Date"][:iMax]
+    y_values1, y_values2 = get_y(column1, column2)
+    #Lines
+    line.plot_date(x_values, y_values1, linewidth="2", color="black", linestyle="-", marker=None, label=column1)
+    line.plot_date(x_values, y_values2, linewidth="2", color="blue", linestyle="-", marker=None, label=column2)
+
+    line.set_ylim(0.7, 5.3)
+    xlabels =[]
+    vecka = 21
+    for i in range(iMax):
+        if df["Day"][i] == "måndag":
+            xlabels.append(df["Date"][i] + "\n Mån v: " + str(vecka))
+            vecka += 1
+    line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"])
+    line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] != "måndag"], minor=True)
+    line.set_xticklabels(xlabels, rotation=90)
+    line.set_yticks([1,2,3,4,5])
+    line.tick_params(axis='y', which='major', labelsize=10)
+    line.grid(axis = "y", linestyle="-", color="darkgray")
+    line.legend()
+    line.set_title(column1 + " & " + column2) 
+    fig.tight_layout()
+    fig.savefig(attatchment_path+ "/plotcomp/"+str(column1)+ "_and_" + str(column2) +"_plot", facecolor="#f4f4f4", transparent=True, pad_inches=6, dpi=300)
+
+#Plot functions
+def create_data_plot(df, column, attatchment_path, show=False):
     #Background cmap definined manually 
     cmap = LinearSegmentedColormap.from_list('krg',["#008702","#7fe393", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
     #Plot and save the graphs
@@ -109,22 +218,6 @@ def create_data_plot(df, column, attatchment_path, show=True):
 def create_all_data_plots(df, attatchment_path, show=False):
     for column in df_no_str_cols(df):
         create_data_plot(df, column, attatchment_path, show)
-
-def int_columns(df):
-    for column in df.columns:
-        if column not in ['Day', 'Date', 'Journal']:
-            df[column] = pd.to_numeric(df[column], errors='coerce')
-    return df
-
-def remove_string_columns(df):
-    df_clean = df.copy()
-    try:
-        del df_clean["Day"]
-        del df_clean["Date"]
-        del df_clean["Journal"]
-        return df_clean
-    except:
-        return df_clean
 
 def rank_columns_std_plot(df, attatchment_path, show=False):
     fig, line = plt.subplots(figsize=(8.8,6), sharex=True, sharey=True)
@@ -189,10 +282,13 @@ def rank_columns_correlation_plot(df, attatchment_path, show=False):
         plt.clf()
 
 show = False
+send = True
+
 create_all_data_plots(df, attatchment_path, show=show)
 rank_columns_correlation_plot(df, attatchment_path, show=show)
 rank_columns_mean_plot(df, attatchment_path, show=show)
 rank_columns_std_plot(df, attatchment_path, show=show)
+create_all_group_plots(df, attatchment_path, groups, show=show)
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #Email details
@@ -228,6 +324,7 @@ port = 465
 context = ssl.create_default_context()
 with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
     server.login(bot_mail, password)
-    server.sendmail(bot_mail, receiver_email, message.as_string())
-
-print("Sent.")
+    if send:
+        server.sendmail(bot_mail, receiver_email, message.as_string())
+        print("Sent.")
+    else: print("Done.")
