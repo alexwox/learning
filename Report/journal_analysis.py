@@ -36,13 +36,21 @@ for column in df.columns:
     if column not in ['Day', 'Date', 'Journal']:
         df[column] = pd.to_numeric(df[column], errors='coerce')
 
-#Analysis
+#Analysis 
 #std = df[0:iMax].std().sort_values()
 #mean = df[0:iMax].mean().sort_values()
 c = df[0:iMax].corr().abs()
 s = c.unstack()
 so = s.sort_values(kind="quicksort")
 so = so.drop_duplicates()[:-1]
+
+numDict = {}
+for number in range(6):
+    numDict[number] = 0
+    largest = ["category", number]
+    for column in remove_string_columns(df):
+        a = df.loc[df[column] == number, column].count()
+        if a > numDict[number] = a
 
 def int_columns(df):
     for column in df.columns:
@@ -138,7 +146,7 @@ def rank_column_correlation_plot(df):
     fig.set_facecolor("white")
     fig.show()
 
-rank_column_correlation_plot(df)
-rank_columns_std_plot(df)
-rank_columns_mean_plot(df)
-compare_plot("Creativity", "Harmony")
+#rank_column_correlation_plot(df)
+#rank_columns_std_plot(df)
+#rank_columns_mean_plot(df)
+#compare_plot("Creativity", "Harmony")
