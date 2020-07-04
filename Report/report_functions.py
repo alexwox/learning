@@ -1,3 +1,4 @@
+#Functions 
 #RUN FORREST RUN 
 import plotly.express as px
 import gspread
@@ -20,32 +21,6 @@ import matplotlib.ticker as ticker
 import time
 from scipy.ndimage.filters import gaussian_filter1d
 
-creds_path = 'C:/Users/alexa/Desktop/Important/principles-347f1fb0ab19.json'
-attatchment_path = "C:/Users/alexa/Desktop/Learning/Report/attatchments/"
-bot_mail = "alwobot7@gmail.com"
-
-#Load in Data from Google Sheets
-scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
-gc = gspread.authorize(creds)
-ws = gc.open('Journal (Start 12/5-20)').worksheets()
-README = gc.open('Journal (Start 12/5-20)').get_worksheet(0)
-j2020 = gc.open('Journal (Start 12/5-20)').get_worksheet(1)
-
-#Set data from Sheet in DataFrame
-df = pd.DataFrame(j2020.get_all_records())
-
-#Turn numeric data in DF into floats (from str)
-for column in df.columns:
-    if column not in ['Day', 'Date', 'Journal']:
-        df[column] = pd.to_numeric(df[column], errors='coerce')
-
-
-groups={"Development":["Discipline", "Productivity", "Creativity", "Insight", "Motivation"], \
-        "Health":["Sleep", "Training&Strech", "Diet", "Physique"], \
-        "Happiness":["Harmony", "Social", "ER", "Experience"]}
-
-
 #Define all necessary functions
 def get_iMax(df):
     return len([len(item) for item in df["Journal"] if len(item) != 0]) #Num datapoints by looking at journal column
@@ -55,6 +30,9 @@ def int_columns(df):
         if column not in ['Day', 'Date', 'Journal']:
             df[column] = pd.to_numeric(df[column], errors='coerce')
     return df
+
+def get_y(df, column1, column2):
+    return (gaussian_filter1d(df[column1][:get_iMax(df)], sigma=1.7), gaussian_filter1d(df[column2][:get_iMax(df)], sigma=1.7))
 
 def remove_string_columns(df):
     df_clean = df.copy()
@@ -95,7 +73,6 @@ def create_group_plot(df, attatchment_path, group, groups, show):
     #Plot and save the graphs
     iMax = get_iMax(df)
     aspect = iMax/14
-    iMin = iMax - len(df[column].dropna())
     fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
     line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=aspect)
 
@@ -137,18 +114,18 @@ def create_all_group_plots(df, attatchment_path, groups, show=False):
     for group in groups.keys():
         create_group_plot(df, attatchment_path, group, groups, show)
 
-def compare_plot(column1, column2):
+def compare_plot(df, attatchment_path, column1, column2):
     """In: two of: Average, Experience, Harmony, Social, Motivation, Physique, Creativity, ER, Diet, Discipline, Sleep, Productivity, Meditation, Training&Strech
     Out: Graph with both columns """
-    
+    iMax = get_iMax(df)
     #Init
     cmap = LinearSegmentedColormap.from_list('krg',["#31B247","#B6F6BE", "#f4f4f4","#F6BCB6", "#B23131"], N=256)
     fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
 
     line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=iMax/14)
 
-    x_values = df["Date"][:iMax]
-    y_values1, y_values2 = get_y(column1, column2)
+    x_values = df["Date"][:get_iMax(df)]
+    y_values1, y_values2 = get_y(df, column1, column2)
     #Lines
     line.plot_date(x_values, y_values1, linewidth="2", color="black", linestyle="-", marker=None, label=column1)
     line.plot_date(x_values, y_values2, linewidth="2", color="blue", linestyle="-", marker=None, label=column2)
@@ -156,12 +133,12 @@ def compare_plot(column1, column2):
     line.set_ylim(0.7, 5.3)
     xlabels =[]
     vecka = 21
-    for i in range(iMax):
+    for i in range(get_iMax(df)):
         if df["Day"][i] == "måndag":
             xlabels.append(df["Date"][i] + "\n Mån v: " + str(vecka))
             vecka += 1
-    line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] == "måndag"])
-    line.set_xticks([df["Date"][i] for i in range(iMax) if df["Day"][i] != "måndag"], minor=True)
+    line.set_xticks([df["Date"][i] for i in range(get_iMax(df)) if df["Day"][i] == "måndag"])
+    line.set_xticks([df["Date"][i] for i in range(get_iMax(df)) if df["Day"][i] != "måndag"], minor=True)
     line.set_xticklabels(xlabels, rotation=90)
     line.set_yticks([1,2,3,4,5])
     line.tick_params(axis='y', which='major', labelsize=10)
@@ -178,7 +155,6 @@ def create_data_plot(df, column, attatchment_path, show=False):
     #Plot and save the graphs
     iMax = get_iMax(df)
     aspect = iMax/14
-    iMin = iMax - len(df[column].dropna())
     fig, line = plt.subplots(figsize=(8.8,5), sharex=True, sharey=True)
     line.imshow([[0,0],[1,1]], cmap=cmap, interpolation='bicubic', extent=[0,iMax,0.7,5.3], aspect=aspect)
 
@@ -280,51 +256,3 @@ def rank_columns_correlation_plot(df, attatchment_path, show=False):
         plt.show()
     else: 
         plt.clf()
-
-show = False
-send = True
-
-create_all_data_plots(df, attatchment_path, show=show)
-rank_columns_correlation_plot(df, attatchment_path, show=show)
-rank_columns_mean_plot(df, attatchment_path, show=show)
-rank_columns_std_plot(df, attatchment_path, show=show)
-create_all_group_plots(df, attatchment_path, groups, show=show)
-
-#--------------------------------------------------------------------------------------------------------------------------------------------
-#Email details
-password = open("C:/Users/alexa/Desktop/Important/bot_pass.txt").read()
-sender_email = bot_mail
-receiver_email = open("C:/Users/alexa/Desktop/Important/receiver.txt").read()
-message = MIMEMultipart()
-message["From"] = sender_email
-message["To"] = receiver_email
-message["Subject"] = "Good morning"
-message["Bcc"] = receiver_email
-
-#Add attatchments to Email, based on the attachments folder
-directory = r"{}".format(attatchment_path)
-for filename in os.listdir(directory):
-    if filename.endswith(".jpg") or filename.endswith(".png"):  #Loopa över bilder
-        file = attatchment_path + filename
-        with open(file, "rb") as attachment:
-            part = MIMEBase("application", "octet-stream")
-            part.set_payload(attachment.read())
-        
-        encoders.encode_base64(part) #Encode
-        part.add_header(  #Detta är vad attatchmentet kommer heta i Emailet. Viktigt för att kunna öppnas
-            "Content-Disposition",
-            f"attachment; filename= {filename}")
-        message.attach(part)
-
-body = "Här är den dagliga statistikrapporten från journalen \n Lycka till idag!"
-message.attach(MIMEText(body, "plain"))
-
-#Send email
-port = 465
-context = ssl.create_default_context()
-with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-    server.login(bot_mail, password)
-    if send:
-        server.sendmail(bot_mail, receiver_email, message.as_string())
-        print("Sent.")
-    else: print("Done.")
