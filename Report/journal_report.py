@@ -12,7 +12,9 @@ from report_functions import (get_journal_df, create_all_data_plots, rank_column
                          rank_columns_std_plot, create_all_group_plots)
 
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-with open('C:/Users/alexa/Desktop/Important/config_user1.csv', newline='') as f:
+
+user = "user1"
+with open('C:/Users/alexa/Desktop/Important/config_' + user + ".csv", newline='') as f:
     config_data = [config_data_list[0] for config_data_list in csv.reader(f)]
     creds_path, attatchment_path, bot_mail, sheet = config_data
 
@@ -66,7 +68,7 @@ port = 465
 context = ssl.create_default_context()
 with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
     server.login(bot_mail, password)
-    if send_mail == True:
+    if send_mail:
         server.sendmail(bot_mail, receiver_email, message.as_string())
         print("Sent.")
     else: print("Done.")
