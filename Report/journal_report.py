@@ -1,47 +1,20 @@
 #RUN FORREST RUN 
-import plotly.express as px
-import gspread
+import smtplib, ssl, email, imapclient, os, time, csv, gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import pprint 
 import pandas as pd 
 from matplotlib import pyplot as plt
-import imapclient
-import smtplib, ssl
-import email
-import numpy as np
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-import os 
-from  matplotlib.colors import LinearSegmentedColormap
-import matplotlib.ticker as ticker
-import time
-from scipy.ndimage.filters import gaussian_filter1d
-from report_functions import (create_all_data_plots, rank_columns_correlation_plot, rank_columns_mean_plot, \
+from report_functions import (get_journal_df, create_all_data_plots, rank_columns_correlation_plot, rank_columns_mean_plot, \
                          rank_columns_std_plot, create_all_group_plots)
 
-creds_path = 'C:/Users/alexa/Desktop/Important/principles-347f1fb0ab19.json'
-attatchment_path = "C:/Users/alexa/Desktop/Learning/Report/attatchments/"
-bot_mail = "alwobot7@gmail.com"
-
-#Load in Data from Google Sheets
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
-gc = gspread.authorize(creds)
-ws = gc.open('Journal (Start 12/5-20)').worksheets()
-README = gc.open('Journal (Start 12/5-20)').get_worksheet(0)
-j2020 = gc.open('Journal (Start 12/5-20)').get_worksheet(1)
-
-#Set data from Sheet in DataFrame
-df = pd.DataFrame(j2020.get_all_records())
-
-#Turn numeric data in DF into floats (from str)
-for column in df.columns:
-    if column not in ['Day', 'Date', 'Journal']:
-        df[column] = pd.to_numeric(df[column], errors='coerce')
-
+with open('C:/Users/alexa/Desktop/Important/config_user1.csv', newline='') as f:
+    config_data = [config_data_list[0] for config_data_list in csv.reader(f)]
+    creds_path, attatchment_path, bot_mail, sheet = config_data
 
 groups={"Development":["Discipline", "Productivity", "Creativity", "Insight", "Motivation"], \
         "Health":["Sleep", "Training&Strech", "Diet", "Physique"], \
@@ -50,14 +23,16 @@ groups={"Development":["Discipline", "Productivity", "Creativity", "Insight", "M
 show = False
 send_mail = True
 
+#-----------------------------------------------------------------------------------------------------------
 #Call functions 
+df = get_journal_df(creds_path, scope, sheet)
 create_all_data_plots(df, attatchment_path, show=show)
 rank_columns_correlation_plot(df, attatchment_path, show=show)
 rank_columns_mean_plot(df, attatchment_path, show=show)
 rank_columns_std_plot(df, attatchment_path, show=show)
 create_all_group_plots(df, attatchment_path, groups, show=show)
 
-#--------------------------------------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------
 #Email details
 password = open("C:/Users/alexa/Desktop/Important/bot_pass.txt").read()
 sender_email = bot_mail
